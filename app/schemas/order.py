@@ -1,21 +1,19 @@
+# app/schemas/order.py
+from typing import List
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import List
-from app.schemas.furniture import FurnitureOut
-
+from app.schemas.order_item import OrderItemOut
 
 class OrderCreate(BaseModel):
     email: EmailStr
-    furniture_ids: List[int]
-
+    furniture_ids: list[int]
 
 class OrderOut(BaseModel):
     id: int
-    email: EmailStr
+    email: str
     total_price: int
     created_at: datetime
-    items: List[FurnitureOut]
+    items: List[OrderItemOut]  # вложенные товары
 
-    model_config = {
-        "from_attributes": True
-    }
+    class Config:
+        orm_mode = True
