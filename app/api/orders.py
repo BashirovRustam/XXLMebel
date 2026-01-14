@@ -27,7 +27,6 @@ async def create_order(
     return OrderOut.from_orm_order(order)
 
 
-# GET /orders/?email= — список заказов по email
 @router.get("/", response_model=List[OrderOut])
 async def get_orders(
     email: str = Query(...),
@@ -35,4 +34,6 @@ async def get_orders(
 ):
     crud = OrderCRUD(session)
     orders = await crud.get_by_email(email)
-    return orders
+
+    # Преобразуем каждый заказ через from_orm_order
+    return [OrderOut.from_orm_order(order) for order in orders]
