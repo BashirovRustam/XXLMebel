@@ -7,12 +7,11 @@ class OrderItemOut(BaseModel):
     category: str
     price: int
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
     @classmethod
-    def from_orm_item(cls, order_item):
-        """Создаёт OrderItemOut из SQLAlchemy OrderItem"""
+    def from_orm(cls, order_item):
+        # order_item.furniture — объект Furniture
         return cls(
             id=order_item.id,
             furniture_id=order_item.furniture_id,

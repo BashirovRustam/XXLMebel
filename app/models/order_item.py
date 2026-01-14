@@ -1,6 +1,7 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
+from app.models import Furniture
 
 
 class OrderItem(Base):
@@ -11,4 +12,4 @@ class OrderItem(Base):
     furniture_id: Mapped[int] = mapped_column(ForeignKey("furniture.id"))
 
     order = relationship("Order", back_populates="items")
-    furniture = relationship("Furniture")
+    furniture: Mapped[Furniture] = relationship("Furniture", lazy="joined")
