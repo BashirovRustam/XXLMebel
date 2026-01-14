@@ -1,3 +1,6 @@
+import os
+from email.message import EmailMessage
+import aiosmtplib
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, update, func
 from sqlalchemy.orm import joinedload
@@ -13,6 +16,33 @@ from app.schemas.order import OrderCreate, OrderOut, OrderItemOut
 class OrderCRUD:
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    async def send_order_email(self, order: OrderOut):
+        """
+        Асинхронная отправка email через локальный SMTP (MailHog)
+        """
+        message = EmailMessage()
+        message["From"] = os.getenv("EMAIL_FROM", "no-reply@example.com")
+        message["To"] = order.email
+        message["Subject"] = f"Ваш заказ #{order.id} подтвержден"
+
+        items_text = "\n".join(
+            f"- {item.name} ({item.category}) — {item.price} тенге." for item in order.items
+        )
+        message.set_content(
+            f"Здравствуйте!\n\nВаш заказ #{order.id} был успешно создан.\n\n"
+            f"Состав заказа:\n{items_text}\n\n"
+            f"Итоговая сумма: {order.total_price} тенге.\n\nСпасибо за покупку!"
+        )
+
+        smtp_host = os.getenv("SMTP_HOST", "mailhog")
+        smtp_port = int(os.getenv("SMTP_PORT", 1025))
+
+        try:
+            await aiosmtplib.send(message, hostname=smtp_host, port=smtp_port)
+            print(f"✅ Email sent to {order.email}")
+        except Exception as e:
+            print(f"❌ Failed to send email: {e}")
 
     async def create(self, order_data: OrderCreate) -> OrderOut:
         # 1️⃣ Получаем мебель
@@ -53,7 +83,7 @@ class OrderCRUD:
             for item in order_items
         ]
 
-        return OrderOut(
+        order_out = OrderOut(
             id=order.id,
             email=order.email,
             total_price=order.total_price,
@@ -61,113 +91,7 @@ class OrderCRUD:
             items=items_out
         )
 
-    # ✅ Получить заказ по ID
-    async def get_by_id(self, order_id: int) -> Optional[Order]:
-        result = await self.session.execute(
-            select(Order)
-            .options(joinedload(Order.items).joinedload(OrderItem.furniture))
-            .where(Order.id == order_id)
-        )
-        return result.unique().scalar_one_or_none()
+        # 6️⃣ Отправка email
+        await self.send_order_email(order_out)
 
-    # ✅ Получить все заказы
-    async def get_all(self) -> List[Order]:
-        result = await self.session.execute(
-            select(Order)
-            .options(joinedload(Order.items).joinedload(OrderItem.furniture))
-            .order_by(Order.created_at.desc())
-        )
-        return result.unique().scalars().all()
-
-    # ✅ Получить заказы по email клиента
-    async def get_by_email(self, email: str) -> List[Order]:
-        result = await self.session.execute(
-            select(Order)
-            .options(joinedload(Order.items).joinedload(OrderItem.furniture))
-            .where(Order.email == email)
-            .order_by(Order.created_at.desc())
-        )
-        return result.unique().scalars().all()
-
-    # ✅ Обновление email заказа
-    async def update(self, order_id: int, email: Optional[str] = None) -> Optional[Order]:
-        order = await self.get_by_id(order_id)
-        if not order:
-            return None
-
-        if email is not None:
-            await self.session.execute(
-                update(Order).where(Order.id == order_id).values(email=email)
-            )
-            await self.session.commit()
-            await self.session.refresh(order)
-
-        return order
-
-    # ✅ Удаление заказа
-    async def delete(self, order_id: int) -> bool:
-        order = await self.get_by_id(order_id)
-        if not order:
-            return False
-
-        await self.session.execute(delete(Order).where(Order.id == order_id))
-        await self.session.commit()
-        return True
-
-    # ✅ Получение заказов по диапазону дат
-    async def get_by_date_range(self, start_date: datetime, end_date: datetime) -> List[Order]:
-        result = await self.session.execute(
-            select(Order)
-            .options(joinedload(Order.items).joinedload(OrderItem.furniture))
-            .where(Order.created_at >= start_date, Order.created_at <= end_date)
-            .order_by(Order.created_at.desc())
-        )
-        return result.unique().scalars().all()
-
-    # ✅ Общая выручка
-    async def get_total_revenue(self) -> int:
-        result = await self.session.execute(select(func.sum(Order.total_price)))
-        return result.scalar() or 0
-
-    # ✅ Количество заказов
-    async def get_orders_count(self) -> int:
-        result = await self.session.execute(select(func.count(Order.id)))
-        return result.scalar() or 0
-
-    # ✅ Добавление мебели в существующий заказ
-    async def add_furniture_to_order(self, order_id: int, furniture_id: int) -> Optional[Order]:
-        order = await self.get_by_id(order_id)
-        if not order:
-            return None
-
-        # Проверяем, существует ли мебель
-        furniture_result = await self.session.execute(
-            select(Furniture).where(Furniture.id == furniture_id)
-        )
-        furniture = furniture_result.scalar_one_or_none()
-        if not furniture:
-            raise ValueError("Furniture item not found")
-
-        # Проверяем, есть ли уже в заказе
-        existing_item = await self.session.execute(
-            select(OrderItem).where(
-                OrderItem.order_id == order_id,
-                OrderItem.furniture_id == furniture_id
-            )
-        )
-        if existing_item.scalar_one_or_none():
-            raise ValueError("Item already in order")
-
-        # Добавляем в заказ
-        order_item = OrderItem(order_id=order_id, furniture_id=furniture_id)
-        self.session.add(order_item)
-
-        # Обновляем total_price
-        new_total = order.total_price + furniture.price
-        await self.session.execute(
-            update(Order).where(Order.id == order_id).values(total_price=new_total)
-        )
-
-        await self.session.commit()
-        await self.session.refresh(order)
-        return order
+        return order_out
