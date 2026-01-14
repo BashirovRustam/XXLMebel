@@ -1,4 +1,3 @@
-# app/schemas/order.py
 from typing import List
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
@@ -13,7 +12,17 @@ class OrderOut(BaseModel):
     email: str
     total_price: int
     created_at: datetime
-    items: List[OrderItemOut]  # вложенные товары
+    items: List[OrderItemOut]
 
     class Config:
         orm_mode = True
+
+    @classmethod
+    def from_orm_order(cls, order):
+        return cls(
+            id=order.id,
+            email=order.email,
+            total_price=order.total_price,
+            created_at=order.created_at,
+            items=[OrderItemOut.from_orm_item(item) for item in order.items]
+        )

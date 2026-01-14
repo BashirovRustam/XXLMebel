@@ -23,7 +23,8 @@ async def create_order(
         order = await crud.create(order_in)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    return order
+
+    return OrderOut.from_orm_order(order)
 
 
 # GET /orders/?email= — список заказов по email
