@@ -3,3 +3,5 @@ POSTGRES_HOST=postgres # адрес БД, при развертывании в �
 POSTGRES_PORT=5432 # порт для подключения к БД
 POSTGRES_USER=postgres # логин для подключения к БД
 POSTGRES_PASSWORD=postgres # пароль для подключения к БД
+
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/Mebel_DB_Docker
