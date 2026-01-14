@@ -7,16 +7,15 @@ from datetime import datetime
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.furniture import Furniture
-from app.schemas.order import OrderCreate
+from app.schemas.order import OrderCreate, OrderOut, OrderItemOut
 
 
 class OrderCRUD:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    # ✅ Создание заказа с вычислением total_price
-    async def create(self, order_data: OrderCreate) -> Order:
-        # Получаем товары по ID
+    async def create(self, order_data: OrderCreate) -> OrderOut:
+        # 1️⃣ Получаем мебель
         result = await self.session.execute(
             select(Furniture).where(Furniture.id.in_(order_data.furniture_ids))
         )
@@ -25,25 +24,42 @@ class OrderCRUD:
         if len(furniture_items) != len(order_data.furniture_ids):
             raise ValueError("Some furniture items not found")
 
+        # 2️⃣ Считаем total_price
         total_price = sum(item.price for item in furniture_items)
 
-        # Создаем заказ
+        # 3️⃣ Создаем заказ
         order = Order(email=order_data.email, total_price=total_price)
         self.session.add(order)
-        await self.session.flush()  # получаем order.id без коммита
+        await self.session.flush()  # чтобы получить order.id
 
-        # Создаем промежуточные записи order_items
+        # 4️⃣ Создаем OrderItem
         order_items = [
-            OrderItem(order_id=order.id, furniture_id=furniture_id)
-            for furniture_id in order_data.furniture_ids
+            OrderItem(order_id=order.id, furniture_id=f.id) for f in furniture_items
         ]
         self.session.add_all(order_items)
 
         await self.session.commit()
         await self.session.refresh(order)
 
-        # Загружаем заказ с товарами
-        return await self.get_by_id(order.id)
+        # 5️⃣ Формируем OrderOut с вложенными предметами
+        items_out = [
+            OrderItemOut(
+                id=item.id,
+                furniture_id=item.furniture.id,
+                name=item.furniture.name,
+                category=item.furniture.category,
+                price=item.furniture.price
+            )
+            for item in order_items
+        ]
+
+        return OrderOut(
+            id=order.id,
+            email=order.email,
+            total_price=order.total_price,
+            created_at=order.created_at,
+            items=items_out
+        )
 
     # ✅ Получить заказ по ID
     async def get_by_id(self, order_id: int) -> Optional[Order]:

@@ -12,7 +12,6 @@ router = APIRouter(
 )
 
 
-# POST /orders/ — создание заказа
 @router.post("/", response_model=OrderOut)
 async def create_order(
     order_in: OrderCreate,
@@ -20,12 +19,10 @@ async def create_order(
 ):
     crud = OrderCRUD(session)
     try:
-        order = await crud.create(order_in)
+        order_out = await crud.create(order_in)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-
-    return OrderOut.from_orm_order(order)
-
+    return order_out
 
 @router.get("/", response_model=List[OrderOut])
 async def get_orders(

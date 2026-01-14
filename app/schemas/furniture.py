@@ -11,3 +11,8 @@ class FurnitureOut(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+class FurnitureCreate(BaseModel):
+    name: str
+    category: str
+    price: int

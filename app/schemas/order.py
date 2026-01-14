@@ -1,7 +1,17 @@
 from typing import List
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from app.schemas.order_item import OrderItemOut
+
+class OrderItemOut(BaseModel):
+    id: int
+    furniture_id: int
+    name: str
+    category: str
+    price: int
+
+    model_config = {
+        "from_attributes": True
+    }
 
 class OrderCreate(BaseModel):
     email: EmailStr
@@ -14,15 +24,6 @@ class OrderOut(BaseModel):
     created_at: datetime
     items: List[OrderItemOut]
 
-    class Config:
-        orm_mode = True
-
-    @classmethod
-    def from_orm_order(cls, order):
-        return cls(
-            id=order.id,
-            email=order.email,
-            total_price=order.total_price,
-            created_at=order.created_at,
-            items=[OrderItemOut.from_orm_item(item) for item in order.items]
-        )
+    model_config = {
+        "from_attributes": True
+    }
