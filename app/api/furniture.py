@@ -13,11 +13,16 @@ router = APIRouter(
 )
 
 
-# GET /furniture/ — список всей мебели
 @router.get("/", response_model=List[FurnitureOut])
-async def get_all_furniture(session: AsyncSession = Depends(get_session)):
+async def get_all_furniture(
+    category: Optional[str] = Query(None, description="Фильтр по категории мебели"),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Получить список мебели. Если указан параметр category, вернётся только мебель из этой категории.
+    """
     crud = FurnitureCRUD(session)
-    return await crud.get_all()
+    return await crud.get_all(category=category)
 
 
 # GET /furniture/{id} — информация о конкретном товаре

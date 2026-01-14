@@ -24,8 +24,11 @@ class FurnitureCRUD:
         )
         return result.scalar_one_or_none()
 
-    async def get_all(self) -> List[Furniture]:
-        result = await self.session.execute(select(Furniture))
+    async def get_all(self, category: Optional[str] = None) -> List[Furniture]:
+        query = select(Furniture)
+        if category:
+            query = query.where(Furniture.category == category)
+        result = await self.session.execute(query)
         return result.scalars().all()
 
     async def get_by_category(self, category: str) -> List[Furniture]:

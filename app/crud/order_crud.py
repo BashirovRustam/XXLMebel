@@ -95,3 +95,15 @@ class OrderCRUD:
         await self.send_order_email(order_out)
 
         return order_out
+
+    async def get_by_email(self, email: str) -> List[Order]:
+        result = await self.session.execute(
+            select(Order)
+            .options(
+                joinedload(Order.items)
+                .joinedload(OrderItem.furniture)
+            )
+            .where(Order.email == email)
+            .order_by(Order.created_at.desc())
+        )
+        return result.unique().scalars().all()
