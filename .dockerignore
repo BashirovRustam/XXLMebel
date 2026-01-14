@@ -1,0 +1,21 @@
+# Виртуальное окружение
+.venv/
+venv/
+
+# Git
+.git
+.gitignore
+
+# Python мусор
+__pycache__/
+*.pyc
+
+# Логи и окружение
+*.log
+.env
+
+# SQLite база для тестов
+*.db
+
+# Docker файлы
+docker-compose.override.yml

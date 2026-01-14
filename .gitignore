@@ -1,0 +1,25 @@
+# Виртуальное окружение
+.venv/
+venv/
+
+# Пайчарм и IDE
+.idea/
+*.iml
+
+# Файлы Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Логи
+*.log
+
+# Environment variables
+.env
+
+# SQLite база для тестов
+*.db
+
+# Docker
+docker-compose.override.yml
