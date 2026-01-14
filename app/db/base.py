@@ -1,10 +1,18 @@
+import os
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from dotenv import load_dotenv
 
 
 
-DATABASE_URL = "sqlite+aiosqlite:///./test.db"
-# 1️⃣ Base для всех моделей
+# DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+
+# Загружаем переменные окружения
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+
 class Base(DeclarativeBase):
     pass
 
