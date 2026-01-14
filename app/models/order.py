@@ -9,7 +9,7 @@ class Order(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    total_price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    total_price: Mapped[int] = mapped_column(nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
     )
